@@ -1,11 +1,12 @@
 ﻿using Common.Utilities;
+using Data.Contracts;
 using Entities;
 using Microsoft.EntityFrameworkCore;
 
 
 namespace Data.Repositories
 {
-	public class UserRepository : Repository<User>
+    public class UserRepository : Repository<User>, IUserRepository
 	{
 		public UserRepository(ApplicationDbContext dbContext) : base(dbContext)
 		{
