@@ -1,4 +1,5 @@
-﻿using Common.Utilities;
+﻿using Common.Exceptions;
+using Common.Utilities;
 using Data.Contracts;
 using Entities;
 using Microsoft.EntityFrameworkCore;
@@ -21,7 +22,7 @@ namespace Data.Repositories
 
 			var exists = await TableNoTracking.AnyAsync(p => p.UserName == user.UserName);
 			if (exists)
-				throw new Exception("نام کاربری تکراری است");
+				throw new BadRequestException("نام کاربری تکراری است");
 
 			var passwordHash = SecurityHelper.GetSha256Hash(password);
 			user.PasswordHash = passwordHash;
