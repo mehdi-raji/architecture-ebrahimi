@@ -19,6 +19,12 @@ namespace Architecture.Controllers
         {
 			this.userRepository = userRepository;
 		}
+
+		[HttpGet]
+		public async Task<ApiResult> ReturnBadRequest()
+		{
+			return NotFound();
+		}
 		[HttpPost]
 		public async Task<ApiResult<User>> Create(UserDto userDto, CancellationToken cancellationToken)
 		{

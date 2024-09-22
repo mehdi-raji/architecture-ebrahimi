@@ -1,8 +1,11 @@
 using Data;
 using Data.Contracts;
 using Data.Repositories;
+using ElmahCore.Mvc;
+using ElmahCore.Sql;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using NLog.Web;
 using Webframework.Middlewares;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -17,6 +20,15 @@ builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlSer
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 
+builder.Logging.ClearProviders();
+builder.Host.UseNLog();
+ 
+
+builder.Services.AddElmah<SqlErrorLog>(options =>
+{
+	options.ConnectionString = builder.Configuration.GetConnectionString("Elmah");
+	options.Path = "elmah-error";
+});
 var app = builder.Build();
 
 app.UseCustomExceptionHandler();
@@ -27,6 +39,7 @@ if (app.Environment.IsDevelopment())
 	app.UseSwagger();
 	app.UseSwaggerUI();
 }
+app.UseElmah();
 app.UseHttpsRedirection();
 
 app.UseAuthorization();
