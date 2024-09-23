@@ -1,5 +1,6 @@
 ﻿using Common;
 using Entities;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using System;
@@ -25,7 +26,11 @@ namespace Services.Services
 		{
 			var secretKey = Encoding.UTF8.GetBytes(_siteSettings.JwtSettings.SecretKey);
 			var signingCredentials = new SigningCredentials(new SymmetricSecurityKey(secretKey), SecurityAlgorithms.HmacSha256Signature);
-			var claims = _getClaims(user);
+
+            var encryptionkey = Encoding.UTF8.GetBytes(_siteSettings.JwtSettings.EncryptKey); 
+            var encryptingCredentials = new EncryptingCredentials(new SymmetricSecurityKey(encryptionkey), SecurityAlgorithms.Aes128KW, SecurityAlgorithms.Aes128CbcHmacSha256);
+
+            var claims = _getClaims(user);
 			var descriptor = new SecurityTokenDescriptor
 			{
 				Issuer = _siteSettings.JwtSettings.Issuer,
@@ -34,7 +39,8 @@ namespace Services.Services
 				NotBefore = DateTime.Now.AddMinutes(_siteSettings.JwtSettings.NotBeforeMinutes),
 				Expires = DateTime.Now.AddMinutes(_siteSettings.JwtSettings.ExpirationMinutes),
 				SigningCredentials = signingCredentials,
-				Subject = new ClaimsIdentity(claims)
+				EncryptingCredentials = encryptingCredentials,
+                Subject = new ClaimsIdentity(claims)
 			};
 			var tokenHandler = new JwtSecurityTokenHandler();
 			var securityToken = tokenHandler.CreateToken(descriptor);
@@ -44,11 +50,13 @@ namespace Services.Services
 		}
 		private IEnumerable<Claim> _getClaims(User user)
 		{
+			var securityStampClaimType = new ClaimsIdentityOptions().SecurityStampClaimType;
 			var list = new List<Claim>()
 			{
 				new Claim(ClaimTypes.Name,user.UserName),
 				new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
 				new Claim(ClaimTypes.MobilePhone, "09123456987"),
+				new Claim(securityStampClaimType,user.SecurityStamp.ToString())
 
 			};
 			var roles = new Role[] {new Role { Name = "Admin"} };

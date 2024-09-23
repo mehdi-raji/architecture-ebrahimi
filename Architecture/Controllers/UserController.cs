@@ -35,7 +35,7 @@ namespace Architecture.Controllers
 			var jwt = jwtService.Generate(user);
 			return jwt;
 		}
-		[HttpGet]
+		[HttpGet("riseError")]
 		public async Task<ApiResult> ReturnBadRequest()
 		{
 			//logger.Error("test");
@@ -59,5 +59,18 @@ namespace Architecture.Controllers
 			await userRepository.AddAsync(user, userDto.Password, cancellationToken);
 			return user;
 		}
-	}
+
+		[HttpGet]
+        public async Task<ApiResult<User>> Get(int id, CancellationToken cancellationToken)
+        {
+            var user = await userRepository.GetByIdAsync(cancellationToken, id);
+            if (user == null)
+                return NotFound();
+
+            await userRepository.UpdateSecuirtyStampAsync(user, cancellationToken);
+
+            return user;
+        }
+
+    }
 }
