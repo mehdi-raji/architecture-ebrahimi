@@ -8,6 +8,10 @@ using NLog.Web;
 using Webframework.Middlewares;
 using System.Net;
 using NLog;
+using Services.Services;
+using Webframework.Configuration;
+using Microsoft.AspNetCore.Mvc.Authorization;
+using Common;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,9 +21,13 @@ logger.Debug("init main");
 
 try
 {
+	var siteSettings = builder.Configuration.GetSection(nameof(SiteSettings)).Get<SiteSettings>();
+
+	builder.Services.Configure<SiteSettings>(builder.Configuration.GetSection(nameof(SiteSettings)));
+
 	// Add services to the container.
 
-	builder.Services.AddControllers();
+	builder.Services.AddControllers(options=> options.Filters.Add(new AuthorizeFilter()));
 
 	// Swagger configuration
 	builder.Services.AddEndpointsApiExplorer();
@@ -32,7 +40,8 @@ try
 	// Dependency Injection for repositories
 	builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 	builder.Services.AddScoped<IUserRepository, UserRepository>();
-
+	builder.Services.AddScoped<IJwtService, JwtService>();
+	builder.Services.AddJwtAuthentication(siteSettings.JwtSettings);
 	// NLog configuration
 	builder.Logging.ClearProviders();
 	builder.Host.UseNLog();
@@ -41,7 +50,7 @@ try
 	builder.Services.AddElmah<SqlErrorLog>(options =>
 	{
 		options.ConnectionString = builder.Configuration.GetConnectionString("Elmah");
-		options.Path = "elmah-error";
+		options.Path = siteSettings.ElmahPath;
 	});
 
 	// Build the app
@@ -62,6 +71,8 @@ try
 
 	// Other middleware
 	app.UseHttpsRedirection();
+	app.UseAuthentication();
+
 	app.UseAuthorization();
 
 	// Mapping controllers

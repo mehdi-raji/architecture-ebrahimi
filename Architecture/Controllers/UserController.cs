@@ -2,9 +2,11 @@
 using Common.Exceptions;
 using Data.Contracts;
 using Entities;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using NLog;
+using Services.Services;
 using Webframework.API;
 using Webframework.Filters;
 
@@ -16,15 +18,23 @@ namespace Architecture.Controllers
 	public class UserController : ControllerBase
 	{
 		private readonly IUserRepository userRepository;
-		private readonly ILogger<UserController> logger;
+		private readonly IJwtService jwtService;
 
-
-		public UserController(IUserRepository userRepository,ILogger<UserController> logger)
+		public UserController(IUserRepository userRepository,IJwtService jwtService)
         {
 			this.userRepository = userRepository;
-			this.logger = logger;
+			this.jwtService = jwtService;
 		}
-
+		[HttpGet("[action]")]
+		[AllowAnonymous]
+		public async Task<string> Token(string userName,string password,CancellationToken cancellationToken)
+		{
+			var user = await userRepository.GetByUserAndPass(userName, password,cancellationToken);
+			if (user == null)
+				throw new BadRequestException("نام کاربری یا رمز عبور اشتباه است");
+			var jwt = jwtService.Generate(user);
+			return jwt;
+		}
 		[HttpGet]
 		public async Task<ApiResult> ReturnBadRequest()
 		{
@@ -32,6 +42,7 @@ namespace Architecture.Controllers
 			throw new BadRequestException("تست");	
 		}
 		[HttpPost]
+		[AllowAnonymous]
 		public async Task<ApiResult<User>> Create(UserDto userDto, CancellationToken cancellationToken)
 		{
 			//var exists = await userRepository.TableNoTracking.AnyAsync(p => p.UserName == userDto.UserName);
