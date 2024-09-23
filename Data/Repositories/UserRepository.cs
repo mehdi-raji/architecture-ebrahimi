@@ -19,17 +19,17 @@ namespace Data.Repositories
 		}
         public Task UpdateSecuirtyStampAsync(User user, CancellationToken cancellationToken)
         {
-            user.SecurityStamp = Guid.NewGuid();
+            //user.SecurityStamp = Guid.NewGuid();
             return UpdateAsync(user, cancellationToken);
         }
         public override Task UpdateAsync(User entity, CancellationToken cancellationToken, bool saveNow = true)
         {
-			entity.SecurityStamp = Guid.NewGuid();
+			//entity.SecurityStamp = Guid.NewGuid();
             return base.UpdateAsync(entity, cancellationToken, saveNow);
         }
         public override void Update(User entity, bool saveNow = true)
         {
-			entity.SecurityStamp = Guid.NewGuid();
+			//entity.SecurityStamp = Guid.NewGuid();
             base.Update(entity, saveNow);
         }
         public Task UpdateLastLoginDateAsync(User user, CancellationToken cancellationToken)

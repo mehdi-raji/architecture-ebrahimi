@@ -17,12 +17,14 @@ namespace Services.Services
 	public class JwtService : IJwtService
 	{
 		private readonly SiteSettings _siteSettings;
+        private readonly SignInManager<User> signInManager;
 
-		public JwtService(IOptionsSnapshot<SiteSettings> settings)
+        public JwtService(IOptionsSnapshot<SiteSettings> settings,SignInManager<User> signInManager)
         {
 			_siteSettings = settings.Value;
-		}
-        public string Generate(User user)
+            this.signInManager = signInManager;
+        }
+        public async Task<string>  GenerateAsync(User user)
 		{
 			var secretKey = Encoding.UTF8.GetBytes(_siteSettings.JwtSettings.SecretKey);
 			var signingCredentials = new SigningCredentials(new SymmetricSecurityKey(secretKey), SecurityAlgorithms.HmacSha256Signature);
@@ -30,8 +32,9 @@ namespace Services.Services
             var encryptionkey = Encoding.UTF8.GetBytes(_siteSettings.JwtSettings.EncryptKey); 
             var encryptingCredentials = new EncryptingCredentials(new SymmetricSecurityKey(encryptionkey), SecurityAlgorithms.Aes128KW, SecurityAlgorithms.Aes128CbcHmacSha256);
 
-            var claims = _getClaims(user);
-			var descriptor = new SecurityTokenDescriptor
+            var claims = await _getClaims(user);
+
+            var descriptor = new SecurityTokenDescriptor
 			{
 				Issuer = _siteSettings.JwtSettings.Issuer,
 				Audience = _siteSettings.JwtSettings.Audience,
@@ -48,23 +51,26 @@ namespace Services.Services
 
 			return jwt;
 		}
-		private IEnumerable<Claim> _getClaims(User user)
+		private async Task<IEnumerable<Claim>> _getClaims(User user)
 		{
-			var securityStampClaimType = new ClaimsIdentityOptions().SecurityStampClaimType;
-			var list = new List<Claim>()
-			{
-				new Claim(ClaimTypes.Name,user.UserName),
-				new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-				new Claim(ClaimTypes.MobilePhone, "09123456987"),
-				new Claim(securityStampClaimType,user.SecurityStamp.ToString())
+            var result = await signInManager.ClaimsFactory.CreateAsync(user);
+			return result.Claims;
 
-			};
-			var roles = new Role[] {new Role { Name = "Admin"} };
-			foreach (var role in roles)
-			{
-				list.Add(new Claim( ClaimTypes.Role, role.Name));
-			}
-			return list;
+            //var securityStampClaimType = new ClaimsIdentityOptions().SecurityStampClaimType;
+			//var list = new List<Claim>()
+			//{
+			//	new Claim(ClaimTypes.Name,user.UserName),
+			//	new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+			//	new Claim(ClaimTypes.MobilePhone, "09123456987"),
+			//	new Claim(securityStampClaimType,user.SecurityStamp.ToString())
+
+			//};
+			//var roles = new Role[] {new Role { Name = "Admin"} };
+			//foreach (var role in roles)
+			//{
+			//	list.Add(new Claim( ClaimTypes.Role, role.Name));
+			//}
+			//return list;
 		}
 	}
 }

@@ -22,7 +22,6 @@ logger.Debug("init main");
 try
 {
 	var siteSettings = builder.Configuration.GetSection(nameof(SiteSettings)).Get<SiteSettings>();
-
 	builder.Services.Configure<SiteSettings>(builder.Configuration.GetSection(nameof(SiteSettings)));
 
 	// Add services to the container.
@@ -36,6 +35,8 @@ try
 	// Database context configuration with SQL Server
 	builder.Services.AddDbContext<ApplicationDbContext>(options =>
 		options.UseSqlServer(builder.Configuration.GetConnectionString("SqlServer")));
+
+	builder.Services.AddCustomInentity(siteSettings.IdentitySettings);
 
 	// Dependency Injection for repositories
 	builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
