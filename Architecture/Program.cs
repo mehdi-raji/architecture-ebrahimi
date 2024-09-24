@@ -1,95 +1,90 @@
-using Data;
-using Data.Contracts;
-using Data.Repositories;
-using ElmahCore.Mvc;
-using ElmahCore.Sql;
-using Microsoft.EntityFrameworkCore;
-using NLog.Web;
-using Webframework.Middlewares;
-using System.Net;
-using NLog;
-using Services.Services;
-using Webframework.Configuration;
-using Microsoft.AspNetCore.Mvc.Authorization;
+using Autofac;
+using Autofac.Extensions.DependencyInjection;
 using Common;
+using ElmahCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Authorization;
+using NLog;
+using NLog.Web;
+using Webframework.Configuration;
+using Webframework.Middlewares;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// NLog: setup the logger
-var logger = NLog.LogManager.Setup().LoadConfigurationFromAppSettings().GetCurrentClassLogger();
+var logger = LogManager.Setup().LoadConfigurationFromAppSettings().GetCurrentClassLogger();
 logger.Debug("init main");
 
 try
 {
-	var siteSettings = builder.Configuration.GetSection(nameof(SiteSettings)).Get<SiteSettings>();
-	builder.Services.Configure<SiteSettings>(builder.Configuration.GetSection(nameof(SiteSettings)));
+    var siteSettings = builder.Configuration.GetSection(nameof(SiteSettings)).Get<SiteSettings>();
+    builder.Services.Configure<SiteSettings>(builder.Configuration.GetSection(nameof(SiteSettings)));
 
-	// Add services to the container.
+    builder.Logging.ClearProviders();
+    builder.Host.UseNLog();
 
-	builder.Services.AddControllers(options=> options.Filters.Add(new AuthorizeFilter()));
+    builder.Host.UseServiceProviderFactory(new AutofacServiceProviderFactory());
 
-	// Swagger configuration
-	builder.Services.AddEndpointsApiExplorer();
-	builder.Services.AddSwaggerGen();
+    builder.Host.ConfigureContainer<ContainerBuilder>(ConfigureAutofac);
 
-	// Database context configuration with SQL Server
-	builder.Services.AddDbContext<ApplicationDbContext>(options =>
-		options.UseSqlServer(builder.Configuration.GetConnectionString("SqlServer")));
+    ConfigureServices(builder.Services, builder.Configuration, siteSettings);
 
-	builder.Services.AddCustomInentity(siteSettings.IdentitySettings);
+    var app = builder.Build();
 
-	// Dependency Injection for repositories
-	builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
-	builder.Services.AddScoped<IUserRepository, UserRepository>();
-	builder.Services.AddScoped<IJwtService, JwtService>();
-	builder.Services.AddJwtAuthentication(siteSettings.JwtSettings);
-	// NLog configuration
-	builder.Logging.ClearProviders();
-	builder.Host.UseNLog();
+    ConfigurePipeline(app, app.Environment);
 
-	// Elmah configuration
-	builder.Services.AddElmah<SqlErrorLog>(options =>
-	{
-		options.ConnectionString = builder.Configuration.GetConnectionString("Elmah");
-		options.Path = siteSettings.ElmahPath;
-	});
-
-	// Build the app
-	var app = builder.Build();
-
-	// Custom middleware to handle exceptions
-	app.UseCustomExceptionHandler();
-
-	// Swagger and UI in Development mode
-	if (app.Environment.IsDevelopment())
-	{
-		app.UseSwagger();
-		app.UseSwaggerUI();
-	}
-
-	// Elmah middleware for error logging
-	app.UseElmah();
-
-	// Other middleware
-	app.UseHttpsRedirection();
-	app.UseAuthentication();
-
-	app.UseAuthorization();
-
-	// Mapping controllers
-	app.MapControllers();
-
-	// Run the application
-	app.Run();
+    app.Run();
 }
 catch (Exception ex)
 {
-	// NLog: catch setup errors
-	logger.Error(ex, "Stopped program because of exception");
-	throw;
+    logger.Error(ex, "Stopped program because of exception");
+    throw;
 }
 finally
 {
-	// Ensure to flush and stop internal timers/threads before application-exit
-	NLog.LogManager.Shutdown();
+    LogManager.Flush();
+    LogManager.Shutdown();
+}
+
+void ConfigureServices(IServiceCollection services, IConfiguration configuration, SiteSettings siteSettings)
+{
+    services.AddControllers(options => options.Filters.Add(new AuthorizeFilter()));
+
+    services.AddEndpointsApiExplorer();
+    services.AddSwaggerGen();
+
+    services.AddDbContext(configuration);
+
+    services.AddCustomInentity(siteSettings.IdentitySettings);
+
+    services.AddJwtAuthentication(siteSettings.JwtSettings);
+
+    services.AddElmah(configuration, siteSettings);
+
+    services.AddMinimalMvc();
+}
+
+void ConfigureAutofac(ContainerBuilder builder)
+{
+    builder.AddServices();
+}
+
+void ConfigurePipeline(WebApplication app, IWebHostEnvironment env)
+{
+    app.UseCustomExceptionHandler();
+
+    app.UseHsts(env);
+
+    if (env.IsDevelopment())
+    {
+        app.UseSwagger();
+        app.UseSwaggerUI();
+    }
+
+    app.UseHttpsRedirection();
+
+    app.UseElmah();
+
+    app.UseAuthentication();
+    app.UseAuthorization();
+
+    app.MapControllers();
 }

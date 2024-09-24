@@ -1,10 +1,15 @@
 ﻿using Common;
 using Common.Exceptions;
 using Common.Utilities;
+using Data;
 using Data.Contracts;
 using Entities;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
@@ -15,13 +20,58 @@ using System.Net;
 using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
+using ElmahCore.Mvc;
+using ElmahCore.Sql;
 
 namespace Webframework.Configuration
 {
     public static class ServiceCollectionExtensions
 	{
-        
-		public static void AddJwtAuthentication(this IServiceCollection services, JwtSettings jwtSettings)
+        public static void AddDbContext(this IServiceCollection services, IConfiguration configuration)
+        {
+            services.AddDbContext<ApplicationDbContext>(options =>
+            {
+                options.UseSqlServer(configuration.GetConnectionString("SqlServer"));
+            });
+        }
+        public static void AddMinimalMvc(this IServiceCollection services)
+        {
+            //https://github.com/aspnet/Mvc/blob/release/2.2/src/Microsoft.AspNetCore.Mvc/MvcServiceCollectionExtensions.cs
+            services.AddMvcCore(options =>
+            {
+                options.Filters.Add(new AuthorizeFilter());
+
+                //Like [ValidateAntiforgeryToken] attribute but dose not validatie for GET and HEAD http method
+                //You can ingore validate by using [IgnoreAntiforgeryToken] attribute
+                //Use this filter when use cookie 
+                //options.Filters.Add(new AutoValidateAntiforgeryTokenAttribute());
+
+                //options.UseYeKeModelBinder();
+            })
+            .AddApiExplorer()
+            .AddAuthorization()
+            .AddFormatterMappings()
+            .AddDataAnnotations()
+            .AddCors()
+            .SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
+        }
+
+        public static void AddElmah(this IServiceCollection services, IConfiguration configuration, SiteSettings siteSetting)
+        {
+            services.AddElmah<SqlErrorLog>(options =>
+            {
+                options.Path = siteSetting.ElmahPath;
+                options.ConnectionString = configuration.GetConnectionString("Elmah");
+                //options.CheckPermissionAction = httpContext =>
+                //{
+                //    return httpContext.User.Identity.IsAuthenticated;
+                //};
+            });
+        }
+
+
+
+        public static void AddJwtAuthentication(this IServiceCollection services, JwtSettings jwtSettings)
 		{
 			services.AddAuthentication(options =>
 			{

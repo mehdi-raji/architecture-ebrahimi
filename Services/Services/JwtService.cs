@@ -14,8 +14,8 @@ using System.Threading.Tasks;
 
 namespace Services.Services
 {
-	public class JwtService : IJwtService
-	{
+	public class JwtService : IJwtService, IScopedDependency
+    {
 		private readonly SiteSettings _siteSettings;
         private readonly SignInManager<User> signInManager;
 
