@@ -53,8 +53,10 @@ namespace Services.Services
 		}
 		private async Task<IEnumerable<Claim>> _getClaims(User user)
 		{
-            var result = await signInManager.ClaimsFactory.CreateAsync(user);
-			return result.Claims;
+            var userClaims = await signInManager.ClaimsFactory.CreateAsync(user);
+			var list = new List<Claim>(userClaims.Claims) ;
+			list.Add(new Claim(ClaimTypes.MobilePhone, "1023457"));
+			return list;
 
             //var securityStampClaimType = new ClaimsIdentityOptions().SecurityStampClaimType;
 			//var list = new List<Claim>()

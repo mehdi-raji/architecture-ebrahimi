@@ -68,6 +68,15 @@ namespace Architecture.Controllers
             };
             var result = await userManager.CreateAsync(user, userDto.Password);
 
+            var result2 = await roleManager.CreateAsync(new Role
+            {
+                Name = "Admin",
+
+                NormalizedName = "ADMIN",
+                Description = "admin role"
+            });
+
+            var result3 = await userManager.AddToRoleAsync(user, "Admin");
 
             //await userRepository.AddAsync(user, userDto.Password, cancellationToken);
             return user;

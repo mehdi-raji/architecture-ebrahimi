@@ -2,6 +2,7 @@
 using Common.Exceptions;
 using Common.Utilities;
 using Data.Contracts;
+using Entities;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
@@ -72,8 +73,8 @@ namespace Webframework.Configuration
                     },
                     OnTokenValidated = async context =>
                     {
-                        //var applicationSignInManager = context.HttpContext.RequestServices.GetRequiredService<IApplicationSignInManager>();
                         var userRepository = context.HttpContext.RequestServices.GetRequiredService<IUserRepository>();
+                        var signInManager = context.HttpContext.RequestServices.GetRequiredService<SignInManager<User>>();
 
                         var claimsIdentity = context.Principal.Identity as ClaimsIdentity;
                         if (claimsIdentity.Claims?.Any() != true)
@@ -90,9 +91,9 @@ namespace Webframework.Configuration
                         //if (user.SecurityStamp != Guid.Parse(securityStamp))
                         //    context.Fail("Token secuirty stamp is not valid.");
 
-                        //var validatedUser = await applicationSignInManager.ValidateSecurityStampAsync(context.Principal);
-                        //if (validatedUser == null)
-                        //    context.Fail("Token secuirty stamp is not valid.");
+                        var validatedUser = await signInManager.ValidateSecurityStampAsync(context.Principal);
+                        if (validatedUser == null)
+                            context.Fail("Token secuirty stamp is not valid.");
 
                         if (!user.IsActive)
                             context.Fail("User is not active.");
