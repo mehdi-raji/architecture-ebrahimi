@@ -1,7 +1,9 @@
+using Architecture.Models;
 using Autofac;
 using Autofac.Extensions.DependencyInjection;
 using Common;
 using ElmahCore.Mvc;
+using Entities;
 using Microsoft.AspNetCore.Mvc.Authorization;
 using NLog;
 using NLog.Web;
@@ -48,10 +50,15 @@ void ConfigureServices(IServiceCollection services, IConfiguration configuration
 {
     services.AddControllers(options => options.Filters.Add(new AuthorizeFilter()));
 
-    services.AddEndpointsApiExplorer();
+	services.AddEndpointsApiExplorer();
     services.AddSwaggerGen();
 
-    services.AddDbContext(configuration);
+    services.AddAutoMapper(config =>
+    {
+	    config.CreateMap<Post, PostDto>().ReverseMap();
+    });
+
+	services.AddDbContext(configuration);
 
     services.AddCustomInentity(siteSettings.IdentitySettings);
 
