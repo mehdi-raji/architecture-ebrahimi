@@ -7,6 +7,7 @@ using Entities;
 using Microsoft.AspNetCore.Mvc.Authorization;
 using NLog;
 using NLog.Web;
+using Scalar.AspNetCore;
 using Webframework.Configuration;
 using Webframework.Middlewares;
 
@@ -51,9 +52,9 @@ void ConfigureServices(IServiceCollection services, IConfiguration configuration
     services.AddControllers(options => options.Filters.Add(new AuthorizeFilter()));
 
 	services.AddEndpointsApiExplorer();
-    services.AddSwaggerGen();
+	services.AddOpenApi();
 
-    services.AddAutoMapper(config =>
+	services.AddAutoMapper(config =>
     {
 	    config.CreateMap<Post, PostDto>().ReverseMap();
     });
@@ -79,11 +80,11 @@ void ConfigurePipeline(WebApplication app, IWebHostEnvironment env)
     app.UseCustomExceptionHandler();
 
     app.UseHsts(env);
-
     if (env.IsDevelopment())
     {
-        app.UseSwagger();
-        app.UseSwaggerUI();
+        app.MapOpenApi();
+        app.MapScalarApiReference();
+
     }
 
     app.UseHttpsRedirection();
