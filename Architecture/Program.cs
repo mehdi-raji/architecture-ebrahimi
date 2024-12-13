@@ -18,12 +18,13 @@ logger.Debug("init main");
 
 try
 {
+	builder.Configuration.AddUserSecrets("107a7b27-f050-46eb-9d24-6817c971e3be");
     var siteSettings = builder.Configuration.GetSection(nameof(SiteSettings)).Get<SiteSettings>();
     builder.Services.Configure<SiteSettings>(builder.Configuration.GetSection(nameof(SiteSettings)));
 
     builder.Logging.ClearProviders();
     builder.Host.UseNLog();
-
+    
     builder.Host.UseServiceProviderFactory(new AutofacServiceProviderFactory());
 
     builder.Host.ConfigureContainer<ContainerBuilder>(ConfigureAutofac);
